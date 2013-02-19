@@ -1,0 +1,195 @@
+--- ffmpeg_movie.c_old	2012-01-13 20:49:31.000000000 -0500
++++ ffmpeg_movie.c	2013-01-31 10:51:40.683654636 -0500
+@@ -76,6 +76,7 @@
+ 
+ typedef struct {
+     AVFormatContext *fmt_ctx;
++    AVMetadata *metadata;
+     AVCodecContext *codec_ctx[MAX_STREAMS];
+     int64_t last_pts;
+     int frame_number;
+@@ -205,6 +206,7 @@
+     ffmovie_ctx = persistent ? malloc(sizeof(ff_movie_context)) : 
+                                emalloc(sizeof(ff_movie_context));
+     ffmovie_ctx->fmt_ctx = NULL;
++    ffmovie_ctx->metadata = NULL;
+     ffmovie_ctx->frame_number = 0;
+ 
+     for (i = 0; i < MAX_STREAMS; i++) {
+@@ -273,6 +275,29 @@
+ }
+ /* }}} */
+ 
++#if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++/* {{{ _php_get_metadata()
++ */
++static char* _php_get_metadata_tag(ff_movie_context *ffmovie_ctx, const char *key)
++{
++    // on first access do av_metadata_conv
++    if (ffmovie_ctx->metadata == NULL) {
++        av_metadata_conv(ffmovie_ctx->fmt_ctx, NULL, ffmovie_ctx->fmt_ctx->iformat->metadata_conv);
++        ffmovie_ctx->metadata = ffmovie_ctx->fmt_ctx->metadata;
++    }
++
++    // can metadata be missing?
++    if (!ffmovie_ctx->metadata) {
++        return NULL;
++    }
++
++    // get from metadata
++    AVMetadataTag *tag = av_metadata_get(ffmovie_ctx->metadata, key, NULL, 0);
++    return tag ? tag->value : NULL;
++}
++#endif
++
++/* }}} */
+ 
+ /* {{{ proto object ffmpeg_movie(string filename) 
+    Constructor for ffmpeg_movie objects
+@@ -534,10 +559,16 @@
+     ff_movie_context *ffmovie_ctx;
+ 
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-    
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "comment");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "comment", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -550,10 +581,16 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "title");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "title", NULL, 0);
+-
++    
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -566,10 +603,16 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "artist");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "author", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -581,10 +624,16 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "copyright");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "copyright", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -597,10 +646,16 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "album");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "album", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -612,10 +667,16 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "genre");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "genre", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -628,10 +689,16 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-    
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "track");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "track", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 
+@@ -643,10 +710,18 @@
+     ff_movie_context *ffmovie_ctx;
+     
+     GET_MOVIE_RESOURCE(ffmovie_ctx);
+-    
++    #if LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(52, 31, 0)
++        // "id3v2 tag TYER is not considered in generic format
++        // ideally "date" should be used here and extract year from it for full compatability
++        char *tag = _php_get_metadata_tag(ffmovie_ctx, "TYER");
++        if (tag && *tag) {
++            RETURN_STRINGL(tag, strlen(tag), 1);
++        }
++    #else
+     AVDictionaryEntry *m_entry = av_dict_get(ffmovie_ctx->fmt_ctx->metadata, "year", NULL, 0);
+ 
+     RETURN_STRINGL(m_entry->value, strlen(m_entry->value), 1);
++    #endif
+ }
+ /* }}} */
+ 

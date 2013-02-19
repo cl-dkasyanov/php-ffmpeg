@@ -1,0 +1,11 @@
+--- ./configure	2013-01-28 10:20:00.000000000 -0500
++++ ./configure	2013-01-29 05:01:34.254800299 -0500
+@@ -4198,7 +4198,7 @@
+   { $as_echo "$as_me:$LINENO: checking for ffmpeg headers" >&5
+ $as_echo_n "checking for ffmpeg headers... " >&6; }
+   for i in $INC_CHECK_DIRS ; do
+-    if test -f $i/include/ffmpeg/avcodec.h; then
++    if test -f $i/include/ffmpeg/libavcodec/avcodec.h; then
+ 
+   if test "$i/include/ffmpeg" != "/usr/include"; then
+ 
